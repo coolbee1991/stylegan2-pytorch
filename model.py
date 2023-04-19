@@ -520,6 +520,9 @@ class Generator(nn.Module):
         self.n_latent = self.log_size * 2 - 2
 
     def make_noise(self):
+        """
+        Make noise layers: one 2 ** 2, two each of 2 ** 3 up to 2 ** self.log_size
+        """
         device = self.input.input.device
 
         noises = [torch.randn(1, 1, 2 ** 2, 2 ** 2, device=device)]
@@ -531,6 +534,9 @@ class Generator(nn.Module):
         return noises
 
     def mean_latent(self, n_latent):
+        """
+        Create latent with n_latent number of inputs?
+        """
         latent_in = torch.randn(
             n_latent, self.style_dim, device=self.input.input.device
         )
@@ -539,6 +545,9 @@ class Generator(nn.Module):
         return latent
 
     def get_latent(self, input):
+        """
+        Actually run self.style, I believe this transforms latent Z to latent N
+        """
         return self.style(input)
 
     def forward(
