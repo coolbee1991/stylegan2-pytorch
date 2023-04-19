@@ -12,6 +12,9 @@ from op import FusedLeakyReLU, fused_leaky_relu, upfirdn2d, conv2d_gradfix
 
 
 class PixelNorm(nn.Module):
+    """
+    input / sqrt(mean of input ** 2 at channel dim)
+    """
     def __init__(self):
         super().__init__()
 
@@ -20,17 +23,23 @@ class PixelNorm(nn.Module):
 
 
 def make_kernel(k):
+    """
+    k for kernel, could simply be an 1-dimensional array like [1, 3, 3, 1] for Blur
+    """
     k = torch.tensor(k, dtype=torch.float32)
 
     if k.ndim == 1:
-        k = k[None, :] * k[:, None]
+        k = k[None, :] * k[:, None] # change from shape of [4] to [4, 4]
 
-    k /= k.sum()
+    k /= k.sum() # make the kerenl values percentage, add up to 1
 
     return k
 
 
 class Upsample(nn.Module):
+    """
+    Calls upfirdn2d???TU with kernel, up down factor, padding
+    """
     def __init__(self, kernel, factor=2):
         super().__init__()
 
@@ -52,6 +61,9 @@ class Upsample(nn.Module):
 
 
 class Downsample(nn.Module):
+    """
+    Same with Upsample, but up is set to 1 and pad is calculated differently
+    """
     def __init__(self, kernel, factor=2):
         super().__init__()
 
@@ -73,6 +85,10 @@ class Downsample(nn.Module):
 
 
 class Blur(nn.Module):
+    """
+    Same with Upsample and Downsample, but up, down all set to 1 and pad is calculated differently.
+    Where did Blur come in?
+    """
     def __init__(self, kernel, pad, upsample_factor=1):
         super().__init__()
 
@@ -92,6 +108,9 @@ class Blur(nn.Module):
 
 
 class EqualConv2d(nn.Module):
+    """
+    Seems like a regular Conv2d, but executes with conv2d_gradfix???TU
+    """
     def __init__(
         self, in_channel, out_channel, kernel_size, stride=1, padding=0, bias=True
     ):
@@ -130,12 +149,15 @@ class EqualConv2d(nn.Module):
 
 
 class EqualLinear(nn.Module):
+    """
+    MLP essentially, except does weird scaling according to lr_mul and in_dim?
+    """
     def __init__(
         self, in_dim, out_dim, bias=True, bias_init=0, lr_mul=1, activation=None
     ):
         super().__init__()
 
-        self.weight = nn.Parameter(torch.randn(out_dim, in_dim).div_(lr_mul))
+        self.weight = nn.Parameter(torch.randn(out_dim, in_dim).div_(lr_mul)) # div_ is inplace division
 
         if bias:
             self.bias = nn.Parameter(torch.zeros(out_dim).fill_(bias_init))
