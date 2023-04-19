@@ -189,6 +189,9 @@ class EqualLinear(nn.Module):
 
 
 class ModulatedConv2d(nn.Module):
+    """
+    modulation seems to be the EqualLinear block that is added at the beginning
+    """
     def __init__(
         self,
         in_channel,
@@ -227,6 +230,7 @@ class ModulatedConv2d(nn.Module):
             self.blur = Blur(blur_kernel, pad=(pad0, pad1))
 
         fan_in = in_channel * kernel_size ** 2
+        # another unknown source of scaling factor: fan_in 
         self.scale = 1 / math.sqrt(fan_in)
         self.padding = kernel_size // 2
 
@@ -246,6 +250,10 @@ class ModulatedConv2d(nn.Module):
         )
 
     def forward(self, input, style):
+        """
+        style is fed in noise???TU
+        Not sure why code differs whether self.fused is False (first part) or True (second part)???TU
+        """
         batch, in_channel, height, width = input.shape
 
         if not self.fused:
@@ -325,6 +333,9 @@ class ModulatedConv2d(nn.Module):
 
 
 class NoiseInjection(nn.Module):
+    """
+    Adds a normal distributed noise * trainable self.weight to image
+    """
     def __init__(self):
         super().__init__()
 
@@ -339,6 +350,9 @@ class NoiseInjection(nn.Module):
 
 
 class ConstantInput(nn.Module):
+    """
+    Outputs a randomly generated Parameter tensor with the corrected batch dimension
+    """
     def __init__(self, channel, size=4):
         super().__init__()
 
@@ -352,6 +366,9 @@ class ConstantInput(nn.Module):
 
 
 class StyledConv(nn.Module):
+    """
+    ModulatedConv2d + NoiseInjection + FusedLeakyReLU
+    """
     def __init__(
         self,
         in_channel,
@@ -389,6 +406,9 @@ class StyledConv(nn.Module):
 
 
 class ToRGB(nn.Module):
+    """
+    ModulatedConv2d to 3 out_channel + bias
+    """
     def __init__(self, in_channel, style_dim, upsample=True, blur_kernel=[1, 3, 3, 1]):
         super().__init__()
 
@@ -399,6 +419,9 @@ class ToRGB(nn.Module):
         self.bias = nn.Parameter(torch.zeros(1, 3, 1, 1))
 
     def forward(self, input, style, skip=None):
+        """
+        skip: for ResNet like properties
+        """
         out = self.conv(input, style)
         out = out + self.bias
 
